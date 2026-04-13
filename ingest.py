@@ -15,10 +15,13 @@ import time
 from config import Chunk, RAGConfig
 
 # ── 1. Kuali Catalog API Fetching ─────────────────────────────────────────────
+UCF_UNDERGRADUATE_CATALOG_ID = "66bcc88cf93938001c548373"
 KUALI_API_BASE = "https://ucf.kuali.co/api/v1/catalog/content/"
 KUALI_PROGRAM_BASE = "https://ucf.kuali.co/api/v1/catalog/program/"
 KUALI_POLICY_BASE = "https://ucf.kuali.co/api/v1/catalog/policy/"
 KUALI_POLICIES_BASE = "https://ucf.kuali.co/api/v1/catalog/policies/"
+KUALI_COURSES_BASE = "https://ucf.kuali.co/api/v1/catalog/courses/"
+KUALI_COURSE_BASE = "https://ucf.kuali.co/api/v1/catalog/course/"
 
 
 def _html_to_text(html: str) -> str:
@@ -80,7 +83,6 @@ def _program_to_text(flat: dict) -> str:
     plain-text string, labelling each section so the LLM has context.
     Fields may be plain text or HTML — both are handled.
     """
-    from bs4 import BeautifulSoup
 
     parts: list[str] = []
     for field in PROGRAM_TEXT_FIELDS:
@@ -141,14 +143,17 @@ def fetch_kuali_pages(content_ids: list[str]) -> list[dict]:
         raise ImportError("Install dependencies: pip install requests beautifulsoup4")
 
     pages: list[dict] = []
-    seen_slugs: set[str] = set()  # avoid duplicate program fetches
+    seen_programs: set[str] = set()  # avoid duplicate program fetches
+    seen_courses: set[str] = set()  # avoid duplicate course fetches
+    seen_policies: set[str] = set()  # avoid duplicate policy fetches
     headers = {"User-Agent": "Mozilla/5.0 (UCF RAG Research Project)"}
+    start_time = time.time()
 
     with requests.Session() as session:
         for content_id in content_ids:
             api_url = f"{KUALI_API_BASE}{content_id}"
             try:
-                print(f"  Fetching: {api_url}")
+                print(f"  Scraping: {api_url}")
                 resp = session.get(api_url, headers=headers, timeout=15)
                 resp.raise_for_status()
                 data = resp.json()
@@ -168,11 +173,11 @@ def fetch_kuali_pages(content_ids: list[str]) -> list[dict]:
                 )
 
                 # ── Follow program sub-links ──
-                slugs = _extract_program_links(body_html)
-                for slug in slugs:
-                    if slug in seen_slugs:
+                programs = _extract_program_links(body_html)
+                for slug in programs:
+                    if slug in seen_programs:
                         continue
-                    seen_slugs.add(slug)
+                    seen_programs.add(slug)
                     time.sleep(0.3)
                     page = _fetch_program_page(catalog_id, slug, session, headers)
                     if page:
@@ -181,15 +186,19 @@ def fetch_kuali_pages(content_ids: list[str]) -> list[dict]:
                 time.sleep(0.3)
 
             except Exception as e:
-                print(f"  [WARN] Failed to fetch id={content_id}: {e}")
+                print(f"  [WARN] Failed to scrape content id={content_id}: {e}")
         try:
-            print(f" Fetching policies from {KUALI_POLICY_BASE}")
-            policy_url = f"{KUALI_POLICIES_BASE}66bcc88cf93938001c548373"
+            print(f" Scraping policies from {KUALI_POLICY_BASE}")
+            policy_url = f"{KUALI_POLICIES_BASE}{UCF_UNDERGRADUATE_CATALOG_ID}"
             resp = session.get(policy_url, headers=headers, timeout=15)
             resp.raise_for_status()
             policies = resp.json()
 
             for policy in policies:
+                policy_id: str = policy.get("pid", "")
+                if policy_id in seen_policies:
+                    continue
+                seen_policies.add(policy_id)
                 title: str = policy.get("title", "").strip()
                 content: str = policy.get("body", "")
                 if not title or not content:
@@ -199,45 +208,232 @@ def fetch_kuali_pages(content_ids: list[str]) -> list[dict]:
                     {
                         "program_name": title,
                         "raw_text": raw_text,
-                        "url": f"{KUALI_POLICY_BASE}66bcc88cf93938001c548373/{policy.get('pid', '')}",
+                        "url": f"{KUALI_POLICY_BASE}{UCF_UNDERGRADUATE_CATALOG_ID}/{policy_id}",
                     }
                 )
                 print(f"    ↳ policy added: {title}")
+                time.sleep(0.3)
         except Exception as e:
-            print(f"  [WARN] Failed to fetch policies: {e}")
+            print(f"  [WARN] Failed to scrape policies: {e}")
 
-    print(f"Fetched {len(pages)} pages total ({len(seen_slugs)} program sub-pages).")
+        try:
+            print(f" Scraping courses from {KUALI_COURSES_BASE}")
+            course_url = f"{KUALI_COURSES_BASE}{UCF_UNDERGRADUATE_CATALOG_ID}"
+            resp = session.get(course_url, headers=headers, timeout=15)
+            resp.raise_for_status()
+            courses = resp.json()
+            for course in courses:
+                course_id: str = course.get("pid", "")
+                if course_id in seen_courses:
+                    continue
+                seen_courses.add(course_id)
+
+                resp = session.get(
+                    f"{KUALI_COURSE_BASE}{UCF_UNDERGRADUATE_CATALOG_ID}/{course_id}",
+                    headers=headers,
+                    timeout=15,
+                )
+                resp.raise_for_status()
+                course_data = resp.json()
+                title = course_data.get("title", "")
+                description = course_data.get("description", "")
+                prerequisites = course_data.get("prerequisites", "")
+                subjectcode = course_data.get("__catalogCourseId", "")
+                if not title or not description:
+                    print(
+                        f"  [WARN] Skipping course: {title} [{subjectcode}] (no title or description)"
+                    )
+                    continue
+                raw_text = _course_to_text(course_data)
+                pages.append(
+                    {
+                        "program_name": title,
+                        "raw_text": raw_text,
+                        "url": f"{KUALI_COURSE_BASE}/{UCF_UNDERGRADUATE_CATALOG_ID}{course_id}",
+                    }
+                )
+                print(f"    ↳ course added: {title} [{subjectcode}]")
+                time.sleep(0.3)
+
+        except Exception as e:
+            print(f"  [WARN] Failed to scrape courses: {e}")
+
+    print(f"Scraped {len(pages)} pages total")
+    print(f"    ↳ {len(seen_programs)} program sub-pages scraped")
+    print(f"    ↳ {len(seen_policies)} policies scraped")
+    print(f"    ↳ {len(seen_courses)} courses scraped")
+    end_time = time.time()
+    print(f"  [INFO] Scraping took {end_time - start_time:.1f}s")
+
     return pages
 
 
 # ── 2. Chunking ────────────────────────────────────────────────────────────────
-def chunk_text(text: str, chunk_size: int = 300, overlap: int = 50) -> list[str]:
-    """
-    Split text into overlapping word-based chunks.
-    chunk_size and overlap are measured in words.
-    """
+def _normalize_text(text: str) -> str:
+    text = re.sub(r"\r", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    return text.strip()
+
+
+def _split_paragraphs(text: str) -> list[str]:
+    text = _normalize_text(text)
+    parts = re.split(r"\n\s*\n", text)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def _chunk_by_words(text: str, chunk_size: int, overlap: int) -> list[str]:
     words = text.split()
+    if not words:
+        return []
+
     chunks = []
+    step = max(1, chunk_size - overlap)
     start = 0
+
     while start < len(words):
         end = min(start + chunk_size, len(words))
-        chunk = " ".join(words[start:end])
-        if len(chunk.strip()) > 20:  # skip near-empty chunks
+        chunk = " ".join(words[start:end]).strip()
+        if len(chunk) > 20:
             chunks.append(chunk)
         if end == len(words):
             break
-        start += chunk_size - overlap
+        start += step
+
     return chunks
 
 
+def _chunk_by_paragraphs(
+    text: str, target_words: int = 220, overlap_words: int = 40
+) -> list[str]:
+    paragraphs = _split_paragraphs(text)
+    if not paragraphs:
+        return []
+
+    chunks: list[str] = []
+    current: list[str] = []
+    current_words = 0
+
+    for para in paragraphs:
+        para_words = len(para.split())
+
+        # If one paragraph is too big, split it directly by words
+        if para_words > target_words * 1.5:
+            if current:
+                combined = "\n\n".join(current).strip()
+                if combined:
+                    chunks.append(combined)
+                current = []
+                current_words = 0
+            chunks.extend(_chunk_by_words(para, target_words, overlap_words))
+            continue
+
+        if current_words + para_words <= target_words:
+            current.append(para)
+            current_words += para_words
+        else:
+            combined = "\n\n".join(current).strip()
+            if combined:
+                chunks.append(combined)
+
+            if overlap_words > 0 and chunks:
+                prev_words = combined.split()
+                overlap_text = " ".join(prev_words[-overlap_words:])
+                current = [overlap_text, para]
+                current_words = len(overlap_text.split()) + para_words
+            else:
+                current = [para]
+                current_words = para_words
+
+    if current:
+        combined = "\n\n".join(current).strip()
+        if combined:
+            chunks.append(combined)
+
+    return chunks
+
+
+def _course_to_text(course_data: dict) -> str:
+    title = (course_data.get("title") or "").strip()
+    course_code = (course_data.get("__catalogCourseId") or "").strip()
+    description = _html_to_text(course_data.get("description", "") or "")
+    prerequisites = _html_to_text(course_data.get("prerequisites", "") or "")
+
+    subject = course_data.get("subjectCode", {}) or {}
+    subject_name = subject.get("name", "")
+    subject_desc = subject.get("description", "")
+
+    credits_obj = course_data.get("credits", {}) or {}
+    credit_value = credits_obj.get("value")
+    terms = course_data.get("termsOffering", []) or []
+    terms_text = ", ".join(t.get("name", "") for t in terms if t.get("name"))
+
+    group1 = (course_data.get("groupFilter1") or {}).get("name", "")
+    group2 = (course_data.get("groupFilter2") or {}).get("name", "")
+
+    parts = [
+        f"Course Code: {course_code}",
+        f"Title: {title}",
+        f"Subject: {subject_name} {subject_desc}".strip(),
+        f"Description: {description}" if description else "",
+        f"Prerequisites: {prerequisites}" if prerequisites else "",
+        f"Credits: {credit_value}" if credit_value is not None else "",
+        f"Terms Offered: {terms_text}" if terms_text else "",
+        f"School: {group1}" if group1 else "",
+        f"College: {group2}" if group2 else "",
+    ]
+
+    return "\n\n".join(p for p in parts if p.strip())
+
+
+def detect_doc_type(page: dict) -> str:
+    url = page.get("url", "")
+    text = page.get("raw_text", "")
+
+    if "/catalog/course/" in url:
+        return "course"
+    if "/catalog/policy/" in url:
+        return "policy"
+    if "/catalog/program/" in url:
+        return "program"
+    if "Prerequisites:" in text and "Course Code:" in text:
+        return "course"
+    return "content"
+
+
+def chunk_page(page: dict, config: RAGConfig) -> list[str]:
+    text = _normalize_text(page["raw_text"])
+    doc_type = detect_doc_type(page)
+
+    if doc_type == "course":
+        # Keep course facts together whenever possible.
+        word_count = len(text.split())
+        if word_count <= 220:
+            return [text]
+        return _chunk_by_words(text, chunk_size=180, overlap=20)
+
+    if doc_type == "policy":
+        return _chunk_by_paragraphs(text, target_words=220, overlap_words=50)
+
+    if doc_type == "program":
+        return _chunk_by_paragraphs(text, target_words=260, overlap_words=50)
+
+    # fallback for general content pages
+    return _chunk_by_paragraphs(
+        text,
+        target_words=config.chunk_size,
+        overlap_words=config.chunk_overlap,
+    )
+
+
 def build_chunks(pages: list[dict], config: RAGConfig) -> list[Chunk]:
-    """Convert scraped pages into Chunk objects."""
-    chunks = []
+    """Convert scraped pages into Chunk objects with document-aware chunking."""
+    chunks: list[Chunk] = []
     chunk_id = 0
+
     for page in pages:
-        text_chunks = chunk_text(
-            page["raw_text"], config.chunk_size, config.chunk_overlap
-        )
+        text_chunks = chunk_page(page, config)
+
         for tc in text_chunks:
             chunks.append(
                 Chunk(
@@ -248,6 +444,7 @@ def build_chunks(pages: list[dict], config: RAGConfig) -> list[Chunk]:
                 )
             )
             chunk_id += 1
+
     print(f"Built {len(chunks)} chunks from {len(pages)} pages.")
     return chunks
 
@@ -264,7 +461,7 @@ def save_chunks(chunks: list[Chunk], path: str):
     ]
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
-    print(f"Saved chunks → {path}")
+    print(f"Saved chunks at’ {path}")
 
 
 def load_chunks(path: str) -> list[Chunk]:

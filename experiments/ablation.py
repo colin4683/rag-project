@@ -26,27 +26,52 @@ from pipeline import RAGPipeline
 from retriever import EmbeddingIndex
 
 # ── Evaluation dataset ─────────────────────────────────────────────────────────
-# Fill in relevant_chunk_ids after building the index.
-# Run:  python cli.py --inspect [question]
-# to see which chunk IDs are retrieved, then manually mark the correct ones (or the ones you think are relevant)
-
 EVAL_SAMPLES: list[EvalSample] = [
     EvalSample(
         question="What is the minimum GPA required for the Computer Science BS?",
-        relevant_chunk_ids=[1133, 1163],  # ← fill in after indexing
-        reference_answer="A minimum 2.500 GPA is required",
+        relevant_chunk_ids=[1503],
+        reference_answer="A minimum 2.500 GPA is required.",
     ),
     EvalSample(
         question="Can UCF Computer Science students specialize in Cybersecurity?",
-        relevant_chunk_ids=[1125, 1128, 1160, 1126, 1129],  # ← fill in after indexing
-        reference_answer="Yes.",
+        relevant_chunk_ids=[1493, 1542],
+        reference_answer="Yes, the program includes a cybersecurity-related specialization or track.",
     ),
     EvalSample(
         question="How many total GEP credits are required for the Psychology (B.S.), Clinical Psychology Track?",
-        relevant_chunk_ids=[1162, 1658, 1669],  # ← fill in after indexing
+        relevant_chunk_ids=[*range(2181, 2196)],
+        reference_answer="The program requires the specified total GEP credits listed in the catalog.",
+    ),
+    EvalSample(
+        question="What are the total credit hours required for the Computer Science BS?",
+        relevant_chunk_ids=[1514],
+        reference_answer="The degree requires the catalog-listed total credit hours.",
+    ),
+    EvalSample(
+        question="What are the required Common Program Prerequisites for the Chemistry (B.S.), Biochemistry Track?",
+        relevant_chunk_ids=[*range(2102, 2125)],
         reference_answer="",
     ),
-    # TODO: Add more samples here
+    EvalSample(
+        question="What is the UCF creed?",
+        relevant_chunk_ids=[12],
+        reference_answer="",
+    ),
+    EvalSample(
+        question="What are the prerequisites for Geotechnical Methods and Case Histories?",
+        relevant_chunk_ids=[3295],
+        reference_answer="",
+    ),
+    EvalSample(
+        question="What do you need to be classified as an upper division student?",
+        relevant_chunk_ids=[2628],
+        reference_answer="To be classified as an upper division student at the University of Central Florida, a student must complete the following: A minimum of 60 credit hours of academic work; The English and mathematics requirements of the Gordon Rule; One year of college instruction in a single foreign language. (This requirement applies to those students admitted to the University without the required two units of foreign language in high school.)",
+    ),
+    EvalSample(
+        question="What are the requirements to make it on the Dean's List?",
+        relevant_chunk_ids=[2592],
+        reference_answer="",
+    ),
 ]
 
 K_VALUES = [1, 3, 5, 10, 20]

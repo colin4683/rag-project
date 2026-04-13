@@ -109,7 +109,7 @@ results to `results/ablation_results.json`.
 ### 1. Clone and install dependencies
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/colin4683/rag-project.git
 cd rag-project
 pip install -r requirements.txt
 ```
@@ -137,18 +137,8 @@ os.environ["GEMINI_API_KEY"] = "your-key-here"
 
 ## Usage
 
-### Build the index (first time only)
-
-```bash
-python cli.py --build
-```
-
-This fetches all catalog pages, follows program sub-links, chunks the text,
-encodes everything with Sentence-BERT, and saves `faiss_index.bin` and
-`chunks.json`. Subsequent runs load from disk automatically.
-
 ### Interactive mode
-
+If the index is not built it will first build
 ```bash
 python cli.py
 ```
@@ -179,13 +169,10 @@ python cli.py --question "What is the late payment fee?" --show-sources
 ```
 
 ### Change number of retrieved chunks
-
 ```bash
 python cli.py --k 10
 ```
-
-### Inspect raw retrieval (no LLM, useful for annotating eval set)
-
+### Inspect raw retrieval (no LLM)
 ```bash
 python cli.py --inspect "What courses are required for the CS degree?"
 ```
@@ -200,6 +187,28 @@ Top 5 retrieved chunks for: "What courses are required for the CS degree?"
        Preview : A minimum 2.500 GPA is required for courses in this section. Technical Electives 18 Total Credits Complete all of the fo...
   ...
 ```
+
+
+### Force build the index
+### Estimated runtime: ~10min
+
+```bash
+python cli.py --build
+```
+
+This fetches:
+- Catalog Pages (Mission Statement, Creed, Departments, Policies)
+- Individual Policy pages (58 policies)
+- Individual Course pages (~3667 courses, some have no content in api)
+
+It then chunks the text, encodes everything with Sentence-BERT, and saves `faiss_index.bin` and `chunks.json`.
+
+### Force build the embeds
+```bash
+python cli.py --embed
+```
+This encodes the existing chinks from `chunks.json` with Sentence-BERT, and saves `faiss_index.bin`
+
 
 ---
 

@@ -98,7 +98,10 @@ KUALI_IDS: list[str] = [
 
 # ── Index bootstrap ────────────────────────────────────────────────────────────
 def load_or_build_pipeline(
-    config: RAGConfig, api_key: str, force_rebuild: bool = False
+    config: RAGConfig,
+    api_key: str,
+    force_rebuild: bool = False,
+    force_embed: bool = False,
 ) -> RAGPipeline:
     index = EmbeddingIndex(model_name=config.embedding_model)
 
@@ -109,7 +112,11 @@ def load_or_build_pipeline(
     ):
         print("Loading existing index...")
         chunks = load_chunks(config.chunks_path)
-        index.load(config.index_path, chunks)
+        if force_embed:
+            print("Rebuilding embeddings...")
+            index.build(chunks, batch_size=16)
+        else:
+            index.load(config.index_path, chunks)
     else:
         print("Building index from Kuali API...")
         pages = fetch_kuali_pages(KUALI_IDS)
@@ -162,6 +169,9 @@ def main() -> None:
     )
     parser.add_argument("--build", action="store_true", help="Force rebuild the index")
     parser.add_argument(
+        "--embed", action="store_true", help="Force rebuild the embeddings"
+    )
+    parser.add_argument(
         "--k", type=int, default=None, help="Number of chunks to retrieve"
     )
     parser.add_argument(
@@ -177,7 +187,9 @@ def main() -> None:
     if args.k:
         config.k = args.k
 
-    pipeline = load_or_build_pipeline(config, api_key, force_rebuild=args.build)
+    pipeline = load_or_build_pipeline(
+        config, api_key, force_rebuild=args.build, force_embed=args.embed
+    )
 
     # ── Inspect mode ──
     if args.inspect:

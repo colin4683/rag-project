@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 @dataclass
 class RAGConfig:
     # Retrieval
-    k: int = 5  # Number of documents to retrieve
+    k: int = 10  # Number of documents to retrieve
     chunk_size: int = 300  # Max words per chunk
     chunk_overlap: int = 50  # Overlap between consecutive chunks
 
