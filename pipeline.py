@@ -33,8 +33,8 @@ class RAGPipeline:
             )
         context = "\n\n---\n\n".join(context_parts)
 
-        # answer = self.llm.generate(question, context)
-        answer = "TODO"
+        answer = self.llm.generate(question, context)
+        # answer = "TODO"
         return RAGResult(
             question=question,
             retrieved_docs=retrieved,

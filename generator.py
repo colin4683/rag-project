@@ -14,7 +14,7 @@ class LLMGenerator:
     """Generates answers using Google Gemini via the google-generativeai SDK."""
 
     def __init__(
-        self, api_key: str, model: str = "gemini-2.5-flash", max_tokens: int = 512
+        self, api_key: str, model: str = "gemini-2.5-flash", max_tokens: int = 1024
     ):
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(
@@ -42,8 +42,10 @@ class LLMGenerator:
         """Baseline: answer with NO retrieved context."""
         prompt = (
             "You are a helpful academic advisor for UCF. "
-            "Answer the following student question as accurately as you can "
-            "based solely on your training knowledge.\n\n"
+            "Answer the question using only your existing knowledge. "
+            "Use 1-2 complete sentences. "
+            "Do not use bullet points, lists, or preambles. "
+            "If you are not sure, say you are not sure.\\n\\n"
             f"Question: {question}"
         )
         response = self.model.generate_content(prompt)

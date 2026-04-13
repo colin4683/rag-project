@@ -18,7 +18,7 @@ class RAGConfig:
     # Models
     embedding_model: str = "all-MiniLM-L6-v2"
     llm_model: str = "gemini-2.5-flash"
-    max_tokens: int = 512
+    max_tokens: int = 1024
 
     # Paths
     index_path: str = "generated/faiss_index.bin"
