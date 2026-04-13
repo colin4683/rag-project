@@ -1,0 +1,19 @@
+# Install with: pip install -r requirements.txt
+
+# ENV
+python-dotenv
+
+# Core ML / Embedding
+sentence-transformers>=2.7.0
+faiss-cpu>=1.8.0           # use faiss-gpu if running on GPU
+
+# LLM API
+google-generativeai>=0.7.0
+
+# Web Scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Utilities
+numpy>=1.26.0
+tqdm>=4.66.0
