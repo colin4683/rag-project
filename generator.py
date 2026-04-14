@@ -7,7 +7,12 @@ Provides two modes:
   - generate_zero_shot() Baseline: answer using only model training knowledge
 """
 
+import time
+
+import cursor
 import google.generativeai as genai
+from yaspin import yaspin
+from yaspin.spinners import Spinners
 
 
 class LLMGenerator:
@@ -35,7 +40,12 @@ class LLMGenerator:
             f"Student Question: {question}\n\n"
             "Answer:"
         )
-        response = self.model.generate_content(prompt)
+        with yaspin().magenta as sp:
+            with cursor.HiddenCursor():
+                sp.side = "right"
+                sp.text = "Generating answer "
+                time.sleep(3)
+                response = self.model.generate_content(prompt)
         return response.text.strip()
 
     def generate_zero_shot(self, question: str) -> str:

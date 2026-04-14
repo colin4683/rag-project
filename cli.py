@@ -202,8 +202,11 @@ def main() -> None:
         print_answer(result, show_sources=args.show_sources)
         return
 
+    # Clear the screen
+    os.system("cls" if os.name == "nt" else "clear")
+
     # ── Interactive loop ──
-    print("\nUCF Course Catalog RAG")
+    print("\nUCF Undergraduate Course Catalog RAG")
     print("Type your question and press Enter. Type 'quit' or 'exit' to stop.")
     print("Prefix with '!inspect ' to see raw retrieved chunks.\n")
 
@@ -219,6 +222,9 @@ def main() -> None:
         if user_input.lower() in {"quit", "exit", "q"}:
             print("Goodbye!")
             break
+        if user_input.lower() in {"clear", "cls"}:
+            os.system("cls" if os.name == "nt" else "clear")
+            continue
         if user_input.lower().startswith("!inspect "):
             question = user_input[len("!inspect ") :]
             inspect_retrieval(pipeline.index, question, k=config.k)
