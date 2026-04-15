@@ -17,7 +17,7 @@ class RAGConfig:
 
     # Models
     embedding_model: str = "all-MiniLM-L6-v2"
-    llm_model: str = "gemini-2.5-flash"
+    llm_model: str = "gpt-4o-mini"
     max_tokens: int = 1024
 
     # Paths

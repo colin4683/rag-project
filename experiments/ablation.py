@@ -106,9 +106,9 @@ def run_ablation(index: EmbeddingIndex, samples: list[EvalSample]) -> dict:
 
 def main() -> None:
     config = RAGConfig()
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        raise EnvironmentError("Set the GEMINI_API_KEY environment variable.")
+        raise EnvironmentError("Set the OPENAI_API_KEY environment variable.")
 
     print("Loading index and chunks...")
     chunks = load_chunks(config.chunks_path)

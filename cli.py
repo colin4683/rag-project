@@ -179,9 +179,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        sys.exit("Error: set the GEMINI_API_KEY environment variable.")
+        sys.exit("Error: set the OPENAI_API_KEY environment variable.")
 
     config = RAGConfig()
     if args.k:

@@ -3,7 +3,7 @@ experiments/baseline.py
 ────────────────────────
 Zero-shot baseline study.
 
-Sends each evaluation question directly to Gemini with no retrieved context,
+Sends each evaluation question directly to the LLM with no retrieved context,
 then saves the side-by-side comparison with RAG answers to JSON.
 """
 
@@ -29,6 +29,8 @@ BASELINE_QUESTIONS = [
     "What is the minimum GPA required for the Computer Science BS program at UCF?",
     "How many total credit hours are required to graduate with a Psychology BS?",
     "What elective tracks are available in the Electrical Engineering BS?",
+    "What is the UCF creed?",
+    "What are the prerequisites for Geotechnical Methods and Case Histories?",
     # TODO: Add more questions here
 ]
 
@@ -65,9 +67,9 @@ def run_baseline(pipeline: RAGPipeline, llm: LLMGenerator) -> list[dict]:
 
 def main() -> None:
     config = RAGConfig()
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        raise EnvironmentError("Set the GEMINI_API_KEY environment variable.")
+        raise EnvironmentError("Set the OPENAI_API_KEY environment variable.")
 
     print("Loading index and chunks...")
     chunks = load_chunks(config.chunks_path)

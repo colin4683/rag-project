@@ -2,7 +2,7 @@
 
 A Retrieval-Augmented Generation (RAG) system that answers student questions
 about UCF programs by retrieving relevant information from the UCF course
-catalog and generating grounded answers with Google Gemini.
+catalog and generating grounded answers with OpenAI.
 
 Built for the Deep Learning & Neural Networks group project.
 
@@ -31,7 +31,7 @@ for a question and uses an LLM to generate a grounded, accurate answer.
 |---|---|---|
 | Embedding model | Sentence-BERT (`all-MiniLM-L6-v2`) | Fast, strong semantic similarity |
 | Vector database | FAISS `IndexFlatL2` | Exact search, sufficient at this scale |
-| Language model | Gemini 1.5 Flash | Free tier, fast, accurate |
+| Language model | GPT-4o mini | Fast, cost-efficient, strong instruction following |
 | Data source | UCF Catalog JSON API | Structured, no HTML scraping noise |
 
 ---
@@ -44,7 +44,7 @@ rag-project/
 ├── config.py              # Shared dataclasses: RAGConfig, Chunk, EvalSample, etc.
 ├── ingest.py              # UCF API fetching, HTML parsing, chunking, persistence
 ├── retriever.py           # Sentence-BERT embeddings + FAISS index
-├── generator.py           # Gemini LLM wrapper (RAG + zero-shot modes)
+├── generator.py           # OpenAI LLM wrapper (RAG + zero-shot modes)
 ├── pipeline.py            # RAGPipeline: wires retriever → generator together
 │
 ├── cli.py                 # Interactive question-answering tool (main entry point)
@@ -81,7 +81,7 @@ result into overlapping word windows. Also handles saving and loading
 Sentence-BERT, stores them in FAISS, and searches at query time. The index
 is saved to `faiss_index.bin` after being built so it only needs to run once.
 
-**`generator.py`** — The `LLMGenerator` class. Wraps the Gemini SDK with two
+**`generator.py`** — The `LLMGenerator` class. Wraps the OpenAI SDK with two
 methods: `generate()` for RAG answers (context injected into prompt) and
 `generate_zero_shot()` for the baseline (no context).
 
@@ -95,7 +95,7 @@ questions via `--question`, raw chunk inspection via `--inspect`, and index
 rebuilding via `--build`.
 
 **`experiments/baseline.py`** — Runs every evaluation question through both
-the full RAG pipeline and zero-shot Gemini, saves side-by-side answers to
+the full RAG pipeline and zero-shot LLM answers, saves side-by-side answers to
 `results/baseline_comparison.json` for human scoring.
 
 **`experiments/ablation.py`** — Sweeps `k` over `[1, 3, 5, 10, 20]` and
@@ -114,7 +114,7 @@ cd rag-project
 pip install -r requirements.txt
 ```
 
-### 2. Get a Gemini API key
+### 2. Get an OpenAI API key
 
 Go to [aistudio.google.com](https://aistudio.google.com), click **Get API key**,
 and copy the key.
@@ -123,14 +123,14 @@ and copy the key.
 
 ```bash
 # macOS / Linux
-export GEMINI_API_KEY="your-key-here"
+export OPENAI_API_KEY="your-key-here"
 
 # Windows (Command Prompt)
-set GEMINI_API_KEY=your-key-here
+set OPENAI_API_KEY=your-key-here
 
 # Google Colab
 import os
-os.environ["GEMINI_API_KEY"] = "your-key-here"
+os.environ["OPENAI_API_KEY"] = "your-key-here"
 ```
 
 ---
@@ -231,7 +231,7 @@ Question (string)
        │
        ▼ numbered context block
        │
- Gemini 1.5 Flash           ← instructed to answer ONLY from context
+ GPT-4o mini                ← instructed to answer ONLY from context
        │
        ▼
  Answer (string)
@@ -260,3 +260,74 @@ python experiments/ablation.py
 TODO
 
 ---
+
+
+### Example Conversation
+```
+UCF Undergraduate Course Catalog RAG
+Type your question and press Enter. Type 'quit' or 'exit' to stop.
+Prefix with '!inspect ' to see raw retrieved chunks.
+
+You: What are the avilable majors I can study as an undergraduate student?
+Retrieved 10 documents for question: What are the avilable majors I can study as an undergraduate student?
+
+────────────────────────────────────────────────────────────
+Answer:
+As an undergraduate student at UCF, you can study the following majors:
+
+1. Public Administration (B.A. / B.S.)
+2. Political Science (B.A.), with tracks in Pre-Law and Intelligence and National Security
+3. International and Global Studies (B.A.)
+4. Biomedical Sciences (B.S.), Pre-Medical Track
+5. Economics (B.S.)
+6. Management (B.S.B.A.)
+7. Advertising/Public Relations (B.A.)
+
+Additionally, there are related programs and minors available in various fields. For more specific information, you may want to consult the UCF course catalog or your academic advisor.
+────────────────────────────────────────────────────────────
+
+You: What are the required Common Program Prerequisites for the Chemistry (B.S.), Biochemistry Track?
+Retrieved 10 documents for question: What are the required Common Program Prerequisites for the Chemistry (B.S.), Biochemistry Track?
+
+────────────────────────────────────────────────────────────
+Answer:
+The required Common Program Prerequisites for the Chemistry (B.S.), Biochemistry Track include the following courses:
+
+- CHM 2045C - Chemistry Fundamentals I
+- CHM 2046 - Chemistry Fundamentals II
+- CHM 2046L - Chemistry Fundamentals Laboratory
+- CHM 2210 - Organic Chemistry I
+- CHM 2211 - Organic Chemistry II
+- CHM 2211L - Organic Laboratory Techniques I
+- MAC 2311C - Calculus with Analytic Geometry I
+- MAC 2312 - Calculus with Analytic Geometry II
+- PHY 2048C - General Physics Using Calculus I (or PHY 2048 and PHY 2048L)
+- PHY 2049C - General Physics Using Calculus II (or PHY 2049 and PHY 2049L)
+
+These courses are typically completed in the first 60 hours of the program.
+────────────────────────────────────────────────────────────
+
+You: What are the prerequisites i need to complete in order to take CHM 2211?
+Retrieved 10 documents for question: What are the prerequisites i need to complete in order to take CHM 2211?
+
+────────────────────────────────────────────────────────────
+Answer:
+To take CHM 2211 (Organic Chemistry II), you must first complete CHM 2210 (Organic Chemistry I). Additionally, CHM 2045C (Chemistry Fundamentals I) is a prerequisite for CHM 2210, which requires passing the Chemistry Placement Test or having completed CHM 1025 and MAC 1105 with a grade of C or better. This information is relevant for the Molecular Microbiology (B.S.) program and other programs that include these chemistry courses.
+────────────────────────────────────────────────────────────
+
+You: What programs are available under the chemistry department?
+Retrieved 10 documents for question: What programs are available under the chemistry department?
+
+────────────────────────────────────────────────────────────
+Answer:
+The programs available under the Chemistry Department at UCF include:
+
+1. **Chemistry (B.A.)** - with areas of emphasis in Education, Preprofessional, and Industry.
+2. **Chemistry (B.S.)** - providing a foundation in all five disciplines of chemistry.
+3. **Chemistry (B.S.), Biochemistry Track** - focused on biochemistry within the chemistry discipline.
+4. **Forensic Science (B.S.)** - with tracks in Chemistry and Biochemistry.
+5. **Chemistry Minor** - providing a basis in the fundamentals of chemical sciences.
+
+Additionally, the department offers graduate programs, including a Master of Science in Chemistry, a Master of Science in Chemistry with a track in Forensic Science, and a Ph.D. in Chemistry.
+────────────────────────────────────────────────────────────
+```
