@@ -16,6 +16,7 @@ Built for the Deep Learning & Neural Networks group project.
 - [Usage](#usage)
 - [Pipeline Architecture](#pipeline-architecture)
 - [Experiments](#experiments)
+- [Example Conversation](#example-conversation)
 ---
 
 ## Project Overview
@@ -116,8 +117,7 @@ pip install -r requirements.txt
 
 ### 2. Get an OpenAI API key
 
-Go to [aistudio.google.com](https://aistudio.google.com), click **Get API key**,
-and copy the key.
+Go to [platform.openai.com](https://platform.openai.com/)
 
 ### 3. Set the environment variable
 
@@ -207,7 +207,7 @@ It then chunks the text, encodes everything with Sentence-BERT, and saves `faiss
 ```bash
 python cli.py --embed
 ```
-This encodes the existing chinks from `chunks.json` with Sentence-BERT, and saves `faiss_index.bin`
+This encodes the existing chunks from `chunks.json` with Sentence-BERT, and saves `faiss_index.bin`
 
 
 ---
@@ -269,8 +269,6 @@ Type your question and press Enter. Type 'quit' or 'exit' to stop.
 Prefix with '!inspect ' to see raw retrieved chunks.
 
 You: What are the avilable majors I can study as an undergraduate student?
-Retrieved 10 documents for question: What are the avilable majors I can study as an undergraduate student?
-
 ────────────────────────────────────────────────────────────
 Answer:
 As an undergraduate student at UCF, you can study the following majors:
@@ -287,7 +285,6 @@ Additionally, there are related programs and minors available in various fields.
 ────────────────────────────────────────────────────────────
 
 You: What are the required Common Program Prerequisites for the Chemistry (B.S.), Biochemistry Track?
-Retrieved 10 documents for question: What are the required Common Program Prerequisites for the Chemistry (B.S.), Biochemistry Track?
 
 ────────────────────────────────────────────────────────────
 Answer:
@@ -308,7 +305,6 @@ These courses are typically completed in the first 60 hours of the program.
 ────────────────────────────────────────────────────────────
 
 You: What are the prerequisites i need to complete in order to take CHM 2211?
-Retrieved 10 documents for question: What are the prerequisites i need to complete in order to take CHM 2211?
 
 ────────────────────────────────────────────────────────────
 Answer:
@@ -316,7 +312,6 @@ To take CHM 2211 (Organic Chemistry II), you must first complete CHM 2210 (Organ
 ────────────────────────────────────────────────────────────
 
 You: What programs are available under the chemistry department?
-Retrieved 10 documents for question: What programs are available under the chemistry department?
 
 ────────────────────────────────────────────────────────────
 Answer:

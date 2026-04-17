@@ -18,7 +18,7 @@ class RAGConfig:
     # Models
     embedding_model: str = "all-MiniLM-L6-v2"
     llm_model: str = "gpt-4o-mini"
-    max_tokens: int = 1024
+    max_tokens: int = 2048
 
     # Paths
     index_path: str = "generated/faiss_index.bin"

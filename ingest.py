@@ -237,7 +237,6 @@ def fetch_kuali_pages(content_ids: list[str]) -> list[dict]:
                 course_data = resp.json()
                 title = course_data.get("title", "")
                 description = course_data.get("description", "")
-                prerequisites = course_data.get("prerequisites", "")
                 subjectcode = course_data.get("__catalogCourseId", "")
                 if not title or not description:
                     print(
