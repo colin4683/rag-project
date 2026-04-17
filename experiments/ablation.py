@@ -72,6 +72,11 @@ EVAL_SAMPLES: list[EvalSample] = [
         relevant_chunk_ids=[2592],
         reference_answer="",
     ),
+    EvalSample(
+        question="What happens if I repeat a course and how does it affect GPA?",
+        relevant_chunk_ids=[],
+        reference_answer="",
+    ),
 ]
 
 K_VALUES = [1, 3, 5, 10, 20]
