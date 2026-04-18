@@ -22,7 +22,6 @@ class RAGPipeline:
     def query(self, question: str, k: Optional[int] = None) -> RAGResult:
         k = k or self.config.k
         retrieved = self.index.search(question, k=k)
-        print(f"Retrieved {len(retrieved)} documents for question: {question}")
         # Build context string from retrieved chunks
         context_parts = []
         for i, doc in enumerate(retrieved):

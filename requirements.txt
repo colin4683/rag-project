@@ -6,6 +6,7 @@ python-dotenv
 # Terminal
 yaspin
 cursor
+rich
 
 # Core ML / Embedding
 sentence-transformers>=2.7.0

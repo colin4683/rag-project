@@ -28,6 +28,8 @@ import os
 import sys
 
 from dotenv import dotenv_values, load_dotenv
+from rich.console import Console
+from rich.markdown import Markdown
 
 load_dotenv()
 from config import RAGConfig
@@ -35,6 +37,9 @@ from generator import LLMGenerator
 from ingest import build_chunks, fetch_kuali_pages, load_chunks, save_chunks
 from pipeline import RAGPipeline
 from retriever import EmbeddingIndex
+
+# Rich Console for markdown printing
+console = Console()
 
 # ── Kuali content IDs ─────────────────────────────────────────────────────────
 KUALI_IDS: list[str] = [
@@ -134,7 +139,9 @@ def load_or_build_pipeline(
 # ── Display helpers ────────────────────────────────────────────────────────────
 def print_answer(result, show_sources: bool = False) -> None:
     print(f"\n{'─' * 60}")
-    print(f"Answer:\n{result.answer}")
+    print(f"Answer:\n")
+    console.print(Markdown(result.answer))
+
     if show_sources:
         print(f"\nSources ({len(result.retrieved_docs)} chunks retrieved):")
         for doc in result.retrieved_docs:
