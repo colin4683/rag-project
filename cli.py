@@ -26,6 +26,7 @@ Flags
 import argparse
 import os
 import sys
+import textwrap
 
 from dotenv import dotenv_values, load_dotenv
 from rich.console import Console
@@ -155,13 +156,60 @@ def print_answer(result, show_sources: bool = False) -> None:
 
 def inspect_retrieval(index: EmbeddingIndex, question: str, k: int) -> None:
     """Show the raw retrieved chunks without calling the LLM."""
+
+    def _extract_labeled_fields(text: str) -> dict[str, str]:
+        fields: dict[str, str] = {}
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line or ":" not in line:
+                continue
+            label, value = line.split(":", 1)
+            label = label.strip()
+            value = value.strip()
+            if label and value and label not in fields:
+                fields[label] = value
+        return fields
+
+    def _compact_preview(text: str, max_len: int = 260) -> str:
+        compact = " ".join(text.split())
+        if len(compact) <= max_len:
+            return compact
+        return compact[: max_len - 3].rstrip() + "..."
+
+    def _print_field(label: str, value: str) -> None:
+        print(
+            textwrap.fill(
+                value,
+                width=110,
+                initial_indent=f"       {label:<12}: ",
+                subsequent_indent=" " * 26,
+            )
+        )
+
     results = index.search(question, k=k)
     print(f'\nTop {k} retrieved chunks for: "{question}"\n')
-    for i, doc in enumerate(results):
-        print(f"  [{i + 1}] chunk_id={doc.chunk.chunk_id}  score={doc.score:.4f}")
-        print(f"       Program : {doc.chunk.program_name}")
-        print(f"       Source  : {doc.chunk.source_url}")
-        print(f"       Preview : {doc.chunk.text[:120]}...")
+    for i, doc in enumerate(results, start=1):
+        fields = _extract_labeled_fields(doc.chunk.text)
+        print(f"{'-' * 112}")
+        print(f"  [{i:>2}] chunk_id={doc.chunk.chunk_id}  score={doc.score:.4f}")
+        _print_field("Program", doc.chunk.program_name)
+        _print_field("Source", doc.chunk.source_url)
+
+        # Prefer course-style fields when present in chunk text.
+        preferred_fields = [
+            "Course Code",
+            "Title",
+            "Subject",
+            "Credits",
+            "Terms Offered",
+            "Prerequisites",
+            "Description",
+        ]
+        for key in preferred_fields:
+            if key in fields:
+                _print_field(key, fields[key])
+
+        _print_field("Preview", _compact_preview(doc.chunk.text))
         print()
 
 
