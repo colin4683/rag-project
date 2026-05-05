@@ -143,6 +143,7 @@ def fetch_kuali_pages(content_ids: list[str]) -> list[dict]:
         raise ImportError("Install dependencies: pip install requests beautifulsoup4")
 
     pages: list[dict] = []
+    seen_slugs: set[str] = set()  # avoid duplicate slug fetches
     seen_programs: set[str] = set()  # avoid duplicate program fetches
     seen_courses: set[str] = set()  # avoid duplicate course fetches
     seen_policies: set[str] = set()  # avoid duplicate policy fetches
@@ -182,6 +183,8 @@ def fetch_kuali_pages(content_ids: list[str]) -> list[dict]:
                     page = _fetch_program_page(catalog_id, slug, session, headers)
                     if page:
                         pages.append(page)
+
+                seen_slugs.add(catalog_id)
 
                 time.sleep(0.3)
 
@@ -258,6 +261,7 @@ def fetch_kuali_pages(content_ids: list[str]) -> list[dict]:
             print(f"  [WARN] Failed to scrape courses: {e}")
 
     print(f"Scraped {len(pages)} pages total")
+    print(f"    ↳ {len(seen_slugs)} programs scraped")
     print(f"    ↳ {len(seen_programs)} program sub-pages scraped")
     print(f"    ↳ {len(seen_policies)} policies scraped")
     print(f"    ↳ {len(seen_courses)} courses scraped")

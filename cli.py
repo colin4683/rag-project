@@ -42,7 +42,7 @@ from retriever import EmbeddingIndex
 # Rich Console for markdown printing
 console = Console()
 
-# ── Kuali content IDs ─────────────────────────────────────────────────────────
+# Kuali content IDs
 KUALI_IDS: list[str] = [
     "66bcc88df93938001c54837f",  # Student Account Services - Tuition & Fees
     "60be66e79ef701001ca5b7c8",  # Mission Creed
@@ -102,7 +102,7 @@ KUALI_IDS: list[str] = [
 ]
 
 
-# ── Index bootstrap ────────────────────────────────────────────────────────────
+# Index bootstrap
 def load_or_build_pipeline(
     config: RAGConfig,
     api_key: str,
@@ -137,7 +137,7 @@ def load_or_build_pipeline(
     return RAGPipeline(config, index, llm)
 
 
-# ── Display helpers ────────────────────────────────────────────────────────────
+# Display helpers
 def print_answer(result, show_sources: bool = False) -> None:
     print(f"\n{'─' * 60}")
     print(f"Answer:\n")
@@ -156,6 +156,7 @@ def print_answer(result, show_sources: bool = False) -> None:
 
 def inspect_retrieval(index: EmbeddingIndex, question: str, k: int) -> None:
     """Show the raw retrieved chunks without calling the LLM."""
+    from query import parse_query, retrieve_for_parsed_query
 
     def _extract_labeled_fields(text: str) -> dict[str, str]:
         fields: dict[str, str] = {}
@@ -186,7 +187,20 @@ def inspect_retrieval(index: EmbeddingIndex, question: str, k: int) -> None:
             )
         )
 
-    results = index.search(question, k=k)
+    parsed = parse_query(question)
+
+    print(f"\n[Query Analysis]")
+    print(f"  Intent    : {parsed.intent.value}")
+    print(f"  Program   : {parsed.program}")
+    print(f"  Track     : {parsed.track}")
+    print(f"  Degree    : {parsed.degree_type}")
+    print(f"  Courses   : {parsed.course_codes}")
+    print(f"  Category  : {parsed.requirement_category}")
+    print(f"  Sub-queries:")
+    for sq in parsed.sub_queries:
+        print(f"    • {sq}")
+
+    results = retrieve_for_parsed_query(parsed, index, k_per_query=k, max_total=k * 2)
     print(f'\nTop {k} retrieved chunks for: "{question}"\n')
     for i, doc in enumerate(results, start=1):
         fields = _extract_labeled_fields(doc.chunk.text)
